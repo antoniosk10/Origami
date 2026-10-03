@@ -14,6 +14,8 @@ from pathlib import Path
 import piexif
 from PIL import Image
 
+from inject_still_image_time import inject_still_image_time
+
 EXIFTOOL = Path("/tmp/exiftool-13.25/exiftool")
 
 # Hard cut: first frame, then instantly second frame (no crossfade).
@@ -22,6 +24,8 @@ DURATION_S = 3.0
 DARK_HOLD_S = 1.5
 BRIGHT_HOLD_S = 1.5
 FPS = 30
+# Still moment = first bright frame (matches key JPG).
+STILL_IMAGE_TIME_S = DARK_HOLD_S
 
 
 def build_apple_makernote(content_id: str) -> bytes:
@@ -158,9 +162,34 @@ def stamp_mov_content_id(mov: Path, content_id: str) -> None:
             "-overwrite_original",
             f"-QuickTime:ContentIdentifier={content_id}",
             f"-Keys:ContentIdentifier={content_id}",
+            "-Keys:LivePhotoAuto=1",
+            "-Keys:LivePhotoVitalityScore=1.0",
             str(mov),
         ]
     )
+
+
+def make_pvt_package(jpeg: Path, mov: Path, outdir: Path, basename: str) -> Path:
+    """Create a .pvt bundle that AirDrop / Photos on iPhone import more reliably."""
+    pvt_dir = outdir / f"{basename}.pvt"
+    if pvt_dir.exists():
+        shutil.rmtree(pvt_dir)
+    pvt_dir.mkdir(parents=True)
+    shutil.copy2(jpeg, pvt_dir / jpeg.name)
+    shutil.copy2(mov, pvt_dir / mov.name)
+    (pvt_dir / "metadata.plist").write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>PFVideoComplementMetadataVersionKey</key>
+    <string>1</string>
+  </dict>
+</plist>
+""",
+        encoding="utf-8",
+    )
+    return pvt_dir
 
 
 def _content_ids(path: Path) -> set[str]:
@@ -230,24 +259,32 @@ def main() -> None:
         make_video(args.dark, args.bright, raw_mov, size)
         shutil.copy2(raw_mov, mov_out)
         stamp_mov_content_id(mov_out, content_id)
+        # iPhone requires still-image-time mebx track; Mac Photos often works without it.
+        # Must run AFTER exiftool stamping so the mebx track is not stripped.
+        inject_still_image_time(mov_out, STILL_IMAGE_TIME_S)
 
     write_live_jpeg(args.bright, jpeg_out, content_id, size)
     verify(jpeg_out, mov_out, content_id)
+    pvt_dir = make_pvt_package(jpeg_out, mov_out, args.outdir, args.basename)
 
     manifest = args.outdir / "README.txt"
     manifest.write_text(
         f"""Live Photo: {args.basename}
 ContentIdentifier: {content_id}
+still-image-time: {STILL_IMAGE_TIME_S:.2f}s
 
-Файлы (оба нужны, имена должны совпадать):
+Файлы:
   {jpeg_out.name}  — ключевой кадр (луч включён)
   {mov_out.name}  — движение, ровно {DURATION_S:.1f} с
     0.00–{DARK_HOLD_S:.2f}s первый кадр
     {DARK_HOLD_S:.2f}–{DURATION_S:.1f}s второй кадр (жёсткая смена, без fade)
+  {pvt_dir.name}/ — пакет для AirDrop / импорта на iPhone
 
-Как попасть на iPhone:
-1) На Mac перетащите оба файла вместе в «Фото».
-2) На iPhone: импортируйте парой через Live Photo Creator / ImgPlay / Lively.
+Как попасть на iPhone (важно):
+1) НАДЁЖНО: на Mac перетащите JPG+MOV (или папку .pvt) в «Фото»,
+   дождитесь iCloud-синхронизации на iPhone.
+2) AirDrop на iPhone: отправьте папку {pvt_dir.name} целиком
+   (не только MOV). Откройте на iPhone → сохранить в Фото.
 3) Обои: Фото → Live Photo → Сделать обоями → Live вкл.
 
 Эффект: нажали и держите — включается луч фонарика.
@@ -256,6 +293,7 @@ ContentIdentifier: {content_id}
     )
     print(f"Wrote {jpeg_out}")
     print(f"Wrote {mov_out}")
+    print(f"Wrote {pvt_dir}")
     print(f"ContentIdentifier={content_id}")
 
 
