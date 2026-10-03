@@ -1,5 +1,5 @@
 Live Photo: IMG_FLASH
-ContentIdentifier: 12D230EC-BD84-444C-9EC8-8917E2014C72
+ContentIdentifier: 63F9483A-08D5-4595-B965-3C587C9E97B9
 
 Файлы (оба нужны, имена должны совпадать):
   IMG_FLASH.JPG  — ключевой кадр (луч включён)

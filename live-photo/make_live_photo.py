@@ -163,14 +163,48 @@ def stamp_mov_content_id(mov: Path, content_id: str) -> None:
     )
 
 
-def verify(jpeg: Path, mov: Path, content_id: str) -> None:
+def _content_ids(path: Path) -> set[str]:
     out = subprocess.check_output(
-        [str(EXIFTOOL), "-s", "-ContentIdentifier", "-MakerNotes:ContentIdentifier", str(jpeg), str(mov)],
+        [str(EXIFTOOL), "-s3", "-ContentIdentifier", str(path)],
         text=True,
     )
-    print(out)
-    if content_id not in out:
-        raise RuntimeError("ContentIdentifier was not written correctly")
+    return {line.strip() for line in out.splitlines() if line.strip()}
+
+
+def verify(jpeg: Path, mov: Path, content_id: str) -> None:
+    """Ensure both files carry the same Live Photo ContentIdentifier."""
+    print("Live Photo identifier:", content_id)
+    print("        ↓")
+    print("Checking metadata…")
+
+    jpg_ids = _content_ids(jpeg)
+    mov_ids = _content_ids(mov)
+    print(f"  JPG ContentIdentifier: {sorted(jpg_ids) or '—'}")
+    print(f"  MOV ContentIdentifier: {sorted(mov_ids) or '—'}")
+
+    detail = subprocess.check_output(
+        [
+            str(EXIFTOOL),
+            "-s",
+            "-G1",
+            "-a",
+            "-ContentIdentifier",
+            "-MakerNotes:ContentIdentifier",
+            "-Keys:ContentIdentifier",
+            str(jpeg),
+            str(mov),
+        ],
+        text=True,
+    )
+    print(detail)
+
+    if jpg_ids != {content_id}:
+        raise RuntimeError(f"JPG identifier mismatch: expected {content_id}, got {jpg_ids}")
+    if mov_ids != {content_id}:
+        raise RuntimeError(f"MOV identifier mismatch: expected {content_id}, got {mov_ids}")
+    if jpg_ids != mov_ids:
+        raise RuntimeError(f"JPG/MOV identifiers differ: {jpg_ids} vs {mov_ids}")
+    print("OK: identical Live Photo identifier on JPG + MOV")
 
 
 def main() -> None:
