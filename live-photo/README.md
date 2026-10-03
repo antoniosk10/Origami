@@ -1,49 +1,32 @@
 # Live Photo для iPhone — фонарик
 
-Из двух кадров собран Apple Live Photo: 1.5 с первый кадр → сразу второй (без fade).
+## Важно: версия для iPhone
 
-## Почему на Mac работает, а на iPhone нет
+Предыдущие JPG+MOV работали на Mac, но iPhone отклонял их.
+Нужны: **HEVC**, настоящие треки `still-image-time` + `live-photo-info`, vitality metadata.
 
-Mac Photos часто принимает пару только по общему `ContentIdentifier`.  
-iPhone строже: нужен ещё трек `still-image-time` (mebx) в MOV и правильный способ импорта.
-
-В этой сборке есть:
-- общий `ContentIdentifier` в JPG + MOV
-- `Keys:LivePhotoAuto` / `LivePhotoVitalityScore`
-- mebx-трек `com.apple.quicktime.still-image-time` на 1.5 с (начало второго кадра)
-- пакет `.pvt` для AirDrop
-
-## Готовые файлы
+Сейчас есть iOS-сборка (все проверки `livephoto-check` пройдены):
 
 | Файл | Назначение |
 |------|------------|
-| `output/IMG_FLASH.JPG` | ключевой кадр (луч) |
-| `output/IMG_FLASH.MOV` | видео 3.0 с + still-image-time |
-| `output/IMG_FLASH.pvt/` | пакет JPG+MOV+metadata.plist |
-| `IMG_FLASH.pvt.zip` | тот же `.pvt` архивом |
-| `IMG_FLASH_LivePhoto.zip` | JPG+MOV |
+| `IMG_FLASH_iOS.pvt.zip` | **скачайте это** → распакуйте → AirDrop папку `.pvt` |
+| `IMG_FLASH_iOS_LivePhoto.zip` | HEIC + MOV |
+| `output-ios/IMG_FLASH.HEIC` + `.MOV` | пара файлов |
 
-## Как поставить на iPhone
+### Импорт на iPhone
 
-**Самый надёжный способ**
-1. На Mac перетащите `IMG_FLASH.JPG` + `IMG_FLASH.MOV` (или папку `.pvt`) в «Фото».
-2. Дождитесь синхронизации iCloud → Live Photo появится на iPhone.
+1. **Надёжно:** на Mac перетащите HEIC+MOV (или `.pvt`) в «Фото» → дождитесь iCloud.
+2. **AirDrop:** распакуйте `IMG_FLASH_iOS.pvt.zip`, отправьте **всю папку** `IMG_FLASH.pvt` на iPhone → сохранить в Фото.
 
-**AirDrop**
-1. Скачайте `IMG_FLASH.pvt.zip`, распакуйте в `IMG_FLASH.pvt`.
-2. AirDrop **всю папку** `.pvt` на iPhone (не один MOV).
-3. На iPhone откройте и сохраните в Фото.
+Тайминг внутри формата iPhone (~1.05 с):
+- ~0.45 с — первый кадр
+- жёсткая смена — второй кадр (ключ на ~0.5 с)
 
-**Обои:** Фото → Live Photo → «Сделать обоями» → Live вкл.
-
-## Пересобрать
+### Пересобрать iOS-версию
 
 ```bash
-python3 live-photo/make_live_photo.py \
-  --dark live-photo/frame-dark.jpg \
-  --bright live-photo/frame-bright.jpg \
-  --outdir live-photo/output \
-  --basename IMG_FLASH
+./live-photo/build_ios_live_photo.sh IMG_FLASH
 ```
 
-Нужны: `ffmpeg`, `python3` + `Pillow`/`piexif`, `exiftool`.
+Нужны: ffmpeg (libx265), MP4Box, heif-enc (libheif-plugin-x265), exiftool, ImageMagick `convert`.
+Шаблон контейнера: `ios-base/` (из [goLive](https://github.com/code-path/goLive), MIT).
