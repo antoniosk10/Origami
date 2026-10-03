@@ -16,11 +16,10 @@ from PIL import Image
 
 EXIFTOOL = Path("/tmp/exiftool-13.25/exiftool")
 
-# Timeline: longer first-frame hold, but beam must still appear near ~1s so
-# Live Photo converters that key off the first second / midpoint see it.
+# Hard cut: first frame, then instantly second frame (no crossfade).
 DURATION_S = 2.0
-DARK_HOLD_S = 0.85
-FADE_S = 0.25
+DARK_HOLD_S = 1.5
+BRIGHT_HOLD_S = DURATION_S - DARK_HOLD_S  # 0.5s
 FPS = 30
 
 
@@ -70,18 +69,17 @@ def run(cmd: list[str]) -> None:
 
 
 def make_video(dark: Path, bright: Path, out_mov: Path, size: tuple[int, int], fps: int = FPS) -> None:
-    """2.0s clip optimized so converters see the beam within the first second."""
+    """2.0s clip: hard cut from first frame to second (no crossfade)."""
     w, h = size
     w -= w % 2
     h -= h % 2
     frames = int(round(DURATION_S * fps))
-    offset = DARK_HOLD_S
-    fade = FADE_S
     vf = (
-        f"[0:v]scale={w}:{h}:flags=lanczos,setsar=1,fps={fps},format=yuv420p,setpts=PTS-STARTPTS[v0];"
-        f"[1:v]scale={w}:{h}:flags=lanczos,setsar=1,fps={fps},format=yuv420p,setpts=PTS-STARTPTS[v1];"
-        f"[v0][v1]xfade=transition=fade:duration={fade}:offset={offset},format=yuv420p,"
-        f"trim=duration={DURATION_S},setpts=PTS-STARTPTS[v]"
+        f"[0:v]scale={w}:{h}:flags=lanczos,setsar=1,fps={fps},format=yuv420p,"
+        f"trim=duration={DARK_HOLD_S},setpts=PTS-STARTPTS[v0];"
+        f"[1:v]scale={w}:{h}:flags=lanczos,setsar=1,fps={fps},format=yuv420p,"
+        f"trim=duration={BRIGHT_HOLD_S},setpts=PTS-STARTPTS[v1];"
+        f"[v0][v1]concat=n=2:v=1:a=0[v]"
     )
     # Silent audio helps some iOS Live Photo importers accept the MOV.
     run(
@@ -91,19 +89,19 @@ def make_video(dark: Path, bright: Path, out_mov: Path, size: tuple[int, int], f
             "-loop",
             "1",
             "-t",
-            str(DURATION_S),
+            str(DARK_HOLD_S),
             "-i",
             str(dark),
             "-loop",
             "1",
             "-t",
-            str(DURATION_S),
+            str(BRIGHT_HOLD_S),
             "-i",
             str(bright),
             "-f",
             "lavfi",
             "-i",
-            f"anullsrc=channel_layout=mono:sample_rate=44100",
+            "anullsrc=channel_layout=mono:sample_rate=44100",
             "-filter_complex",
             vf,
             "-map",
@@ -119,11 +117,13 @@ def make_video(dark: Path, bright: Path, out_mov: Path, size: tuple[int, int], f
             "-bf",
             "0",
             "-g",
-            str(fps),
+            str(max(1, int(round(DARK_HOLD_S * fps)))),  # keyframe on the cut
             "-keyint_min",
-            str(fps),
+            "1",
             "-sc_threshold",
             "0",
+            "-force_key_frames",
+            f"expr:gte(t,{DARK_HOLD_S})",
             "-crf",
             "18",
             "-pix_fmt",
@@ -199,7 +199,6 @@ def main() -> None:
     write_live_jpeg(args.bright, jpeg_out, content_id, size)
     verify(jpeg_out, mov_out, content_id)
 
-    bright_from = DARK_HOLD_S + FADE_S
     manifest = args.outdir / "README.txt"
     manifest.write_text(
         f"""Live Photo: {args.basename}
@@ -209,8 +208,7 @@ ContentIdentifier: {content_id}
   {jpeg_out.name}  — ключевой кадр (луч включён)
   {mov_out.name}  — движение, ровно {DURATION_S:.1f} с
     0.00–{DARK_HOLD_S:.2f}s первый кадр
-    {DARK_HOLD_S:.2f}–{bright_from:.2f}s переход
-    {bright_from:.2f}–{DURATION_S:.1f}s второй кадр (луч)
+    {DARK_HOLD_S:.2f}–{DURATION_S:.1f}s второй кадр (жёсткая смена, без fade)
 
 Как попасть на iPhone:
 1) На Mac перетащите оба файла вместе в «Фото».
