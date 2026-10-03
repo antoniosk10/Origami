@@ -1,35 +1,29 @@
 # Live Photo для iPhone — фонарик
 
-Пересобранная iOS-версия (как [goLive](https://github.com/code-path/goLive)): HEVC, `still-image-time`, `live-photo-info`, vitality, **lowercase UUID**.
-
-Все проверки `livephoto-check` пройдены.
+iOS-сборка (как goLive): HEVC + `still-image-time` / `live-photo-info` / vitality.
+Первый кадр держится **~0.95 с** (на 0.5 с дольше, чем в предыдущей рабочей версии).
 
 ## Скачать
 
 | Файл | Назначение |
 |------|------------|
-| `IMG_FLASH_iOS.pvt.zip` | **лучше всего** → распаковать → AirDrop папку `.pvt` |
-| `IMG_FLASH_HEIC_MOV.zip` | пара HEIC + mov |
-| `IMG_FLASH_JPG_MOV.zip` | пара JPG + mov (часто проще для «Фото» на Mac) |
-| `IMG_FLASH_iOS_LivePhoto.zip` | HEIC + mov + README |
+| `IMG_FLASH_JPG_MOV.zip` | **удобно** → Mac «Фото» → Импортировать JPG+mov |
+| `IMG_FLASH_iOS.pvt.zip` | AirDrop папки `.pvt` |
+| `IMG_FLASH_HEIC_MOV.zip` | HEIC + mov |
 
-## Импорт (если «не работает» — почти всегда из‑за способа)
+## Импорт
 
-1. Удалите старый `IMG_FLASH` из «Фото» **и** из «Недавно удалённые».
-2. **Надёжный путь:** на Mac → «Фото» → **Файл → Импортировать…** → выберите **оба** файла сразу (HEIC+mov или JPG+mov) → дождитесь iCloud на iPhone.
-3. **AirDrop:** распакуйте zip, отправьте **всю папку** `IMG_FLASH.pvt` (не zip и не один HEIC).
-4. Не сохраняйте только HEIC/JPG из «Файлы» — Live-пара пропадает.
+1. Удалите старый `IMG_FLASH` из «Фото» и «Недавно удалённые».
+2. Mac → «Фото» → **Файл → Импортировать…** → оба файла → iCloud на iPhone.
+3. Или AirDrop всей папки `IMG_FLASH.pvt`.
 
-## Тайминг (~1.05 с, окно Live Photo iPhone)
+## Тайминг (~3 с)
 
-- ~0.45 с — тёмный кадр  
-- жёсткая смена — луч (ключ ~0.50 с)
+- **0.00–0.95 с** — первый кадр  
+- **0.95 с** — жёсткая смена → второй кадр (ключ ~1.47 с)
 
 ## Пересобрать
 
 ```bash
 ./live-photo/build_ios_live_photo.sh IMG_FLASH
 ```
-
-Нужны: ffmpeg (libx265), MP4Box, ImageMagick/`heif-enc`, exiftool, uuidgen.  
-Шаблон: `ios-base/` (из goLive, MIT).

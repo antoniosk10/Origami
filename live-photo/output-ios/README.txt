@@ -1,17 +1,15 @@
 iPhone Live Photo: IMG_FLASH
-ContentIdentifier: 54a0d6b5-b91f-46c7-9dd7-ab0092c8fb22
+ContentIdentifier: 002436ed-7ba6-4f80-957c-26aa4c35d7ec
 
 ЧТО СКАЧАТЬ
-  IMG_FLASH_iOS.pvt.zip     → распаковать → папка IMG_FLASH.pvt
-  или IMG_FLASH_HEIC_MOV.zip / IMG_FLASH_JPG_MOV.zip
+  IMG_FLASH_iOS.pvt.zip / IMG_FLASH_JPG_MOV.zip / IMG_FLASH_HEIC_MOV.zip
 
-КАК ИМПОРТИРОВАТЬ (важно!)
-1) На Mac: Фото → Файл → Импортировать… → выбрать ОБА файла (HEIC+mov или JPG+mov).
-   Дождаться синхронизации iCloud Photos на iPhone.
-2) AirDrop: отправить папку IMG_FLASH.pvt целиком (не zip и не один HEIC).
-3) Перед повторным импортом удалите старый IMG_FLASH из Фото + «Недавно удалённые».
-4) Нельзя: открыть только HEIC в «Файлы» → «Сохранить изображение» — Live пропадает.
+КАК ИМПОРТИРОВАТЬ
+1) Удалите старый IMG_FLASH из Фото + «Недавно удалённые».
+2) Mac: Фото → Файл → Импортировать… → оба файла (JPG+mov или HEIC+mov) → iCloud.
+3) Или AirDrop всей папки IMG_FLASH.pvt.
 
-Тайминг (~1.050000 с):
-  0.00–0.45s тёмный кадр
-  0.45s жёсткая смена → луч (ключ ~0.50s)
+Тайминг (~3.003333 с):
+  0.00–0.950s первый кадр (на 0.5с дольше, чем раньше)
+  0.950s жёсткая смена → второй кадр
+  ключ (still-image-time) ~1.470s — кадр видео в этот момент
