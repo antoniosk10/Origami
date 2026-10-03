@@ -1,32 +1,35 @@
 # Live Photo для iPhone — фонарик
 
-## Важно: версия для iPhone
+Пересобранная iOS-версия (как [goLive](https://github.com/code-path/goLive)): HEVC, `still-image-time`, `live-photo-info`, vitality, **lowercase UUID**.
 
-Предыдущие JPG+MOV работали на Mac, но iPhone отклонял их.
-Нужны: **HEVC**, настоящие треки `still-image-time` + `live-photo-info`, vitality metadata.
+Все проверки `livephoto-check` пройдены.
 
-Сейчас есть iOS-сборка (все проверки `livephoto-check` пройдены):
+## Скачать
 
 | Файл | Назначение |
 |------|------------|
-| `IMG_FLASH_iOS.pvt.zip` | **скачайте это** → распакуйте → AirDrop папку `.pvt` |
-| `IMG_FLASH_iOS_LivePhoto.zip` | HEIC + MOV |
-| `output-ios/IMG_FLASH.HEIC` + `.MOV` | пара файлов |
+| `IMG_FLASH_iOS.pvt.zip` | **лучше всего** → распаковать → AirDrop папку `.pvt` |
+| `IMG_FLASH_HEIC_MOV.zip` | пара HEIC + mov |
+| `IMG_FLASH_JPG_MOV.zip` | пара JPG + mov (часто проще для «Фото» на Mac) |
+| `IMG_FLASH_iOS_LivePhoto.zip` | HEIC + mov + README |
 
-### Импорт на iPhone
+## Импорт (если «не работает» — почти всегда из‑за способа)
 
-1. **Надёжно:** на Mac перетащите HEIC+MOV (или `.pvt`) в «Фото» → дождитесь iCloud.
-2. **AirDrop:** распакуйте `IMG_FLASH_iOS.pvt.zip`, отправьте **всю папку** `IMG_FLASH.pvt` на iPhone → сохранить в Фото.
+1. Удалите старый `IMG_FLASH` из «Фото» **и** из «Недавно удалённые».
+2. **Надёжный путь:** на Mac → «Фото» → **Файл → Импортировать…** → выберите **оба** файла сразу (HEIC+mov или JPG+mov) → дождитесь iCloud на iPhone.
+3. **AirDrop:** распакуйте zip, отправьте **всю папку** `IMG_FLASH.pvt` (не zip и не один HEIC).
+4. Не сохраняйте только HEIC/JPG из «Файлы» — Live-пара пропадает.
 
-Тайминг внутри формата iPhone (~1.05 с):
-- ~0.45 с — первый кадр
-- жёсткая смена — второй кадр (ключ на ~0.5 с)
+## Тайминг (~1.05 с, окно Live Photo iPhone)
 
-### Пересобрать iOS-версию
+- ~0.45 с — тёмный кадр  
+- жёсткая смена — луч (ключ ~0.50 с)
+
+## Пересобрать
 
 ```bash
 ./live-photo/build_ios_live_photo.sh IMG_FLASH
 ```
 
-Нужны: ffmpeg (libx265), MP4Box, heif-enc (libheif-plugin-x265), exiftool, ImageMagick `convert`.
-Шаблон контейнера: `ios-base/` (из [goLive](https://github.com/code-path/goLive), MIT).
+Нужны: ffmpeg (libx265), MP4Box, ImageMagick/`heif-enc`, exiftool, uuidgen.  
+Шаблон: `ios-base/` (из goLive, MIT).

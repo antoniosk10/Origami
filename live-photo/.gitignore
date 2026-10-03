@@ -2,3 +2,7 @@ __pycache__/
 *.pyc
 output/IMG_FLASH.pvt/
 output-ios/IMG_FLASH.pvt/
+output-ios/IMG_FLASH_HEIC_MOV/
+output-ios/IMG_FLASH_JPG_MOV/
+output-ios/*.MOV
+output-ios/*_original
