@@ -16,6 +16,13 @@ from PIL import Image
 
 EXIFTOOL = Path("/tmp/exiftool-13.25/exiftool")
 
+# Timeline tuned for Live Photo converters that key off the first ~1s / midpoint:
+# dark hold → fade → bright (bright occupies the middle and the end).
+DURATION_S = 2.0
+DARK_HOLD_S = 0.50
+FADE_S = 0.35
+FPS = 30
+
 
 def build_apple_makernote(content_id: str) -> bytes:
     """Apple MakerNote with tag 0x0011 = Live Photo ContentIdentifier."""
@@ -62,19 +69,21 @@ def run(cmd: list[str]) -> None:
     subprocess.run(cmd, check=True)
 
 
-def make_video(dark: Path, bright: Path, out_mov: Path, size: tuple[int, int], fps: int = 30) -> None:
-    """Exactly 2.0s clip: soft light -> flashlight beam on, hold the bright frame."""
+def make_video(dark: Path, bright: Path, out_mov: Path, size: tuple[int, int], fps: int = FPS) -> None:
+    """2.0s clip optimized so converters see the beam within the first second."""
     w, h = size
-    # Align to even dimensions for H.264
     w -= w % 2
     h -= h % 2
-    # Timeline (2.0s total): dark hold 1.00s → crossfade 0.50s → bright hold 0.50s
+    frames = int(round(DURATION_S * fps))
+    offset = DARK_HOLD_S
+    fade = FADE_S
     vf = (
         f"[0:v]scale={w}:{h}:flags=lanczos,setsar=1,fps={fps},format=yuv420p,setpts=PTS-STARTPTS[v0];"
         f"[1:v]scale={w}:{h}:flags=lanczos,setsar=1,fps={fps},format=yuv420p,setpts=PTS-STARTPTS[v1];"
-        f"[v0][v1]xfade=transition=fade:duration=0.50:offset=1.00,format=yuv420p,"
-        f"trim=duration=2.0,setpts=PTS-STARTPTS[v]"
+        f"[v0][v1]xfade=transition=fade:duration={fade}:offset={offset},format=yuv420p,"
+        f"trim=duration={DURATION_S},setpts=PTS-STARTPTS[v]"
     )
+    # Silent audio helps some iOS Live Photo importers accept the MOV.
     run(
         [
             "ffmpeg",
@@ -82,25 +91,39 @@ def make_video(dark: Path, bright: Path, out_mov: Path, size: tuple[int, int], f
             "-loop",
             "1",
             "-t",
-            "2.0",
+            str(DURATION_S),
             "-i",
             str(dark),
             "-loop",
             "1",
             "-t",
-            "2.0",
+            str(DURATION_S),
             "-i",
             str(bright),
+            "-f",
+            "lavfi",
+            "-i",
+            f"anullsrc=channel_layout=mono:sample_rate=44100",
             "-filter_complex",
             vf,
             "-map",
             "[v]",
+            "-map",
+            "2:a",
             "-c:v",
             "libx264",
             "-profile:v",
-            "high",
+            "main",
             "-level:v",
             "5.1",
+            "-bf",
+            "0",
+            "-g",
+            str(fps),
+            "-keyint_min",
+            str(fps),
+            "-sc_threshold",
+            "0",
             "-crf",
             "18",
             "-pix_fmt",
@@ -108,7 +131,12 @@ def make_video(dark: Path, bright: Path, out_mov: Path, size: tuple[int, int], f
             "-r",
             str(fps),
             "-frames:v",
-            str(fps * 2),
+            str(frames),
+            "-c:a",
+            "aac",
+            "-b:a",
+            "64k",
+            "-shortest",
             "-movflags",
             "+faststart",
             "-tag:v",
@@ -171,6 +199,7 @@ def main() -> None:
     write_live_jpeg(args.bright, jpeg_out, content_id, size)
     verify(jpeg_out, mov_out, content_id)
 
+    bright_from = DARK_HOLD_S + FADE_S
     manifest = args.outdir / "README.txt"
     manifest.write_text(
         f"""Live Photo: {args.basename}
@@ -178,14 +207,15 @@ ContentIdentifier: {content_id}
 
 Файлы (оба нужны, имена должны совпадать):
   {jpeg_out.name}  — ключевой кадр (луч включён)
-  {mov_out.name}  — движение (мягкий свет → луч), ровно 2.0 с
+  {mov_out.name}  — движение, ровно {DURATION_S:.1f} с
+    0.00–{DARK_HOLD_S:.2f}s первый кадр
+    {DARK_HOLD_S:.2f}–{bright_from:.2f}s переход
+    {bright_from:.2f}–{DURATION_S:.1f}s второй кадр (луч)
 
 Как попасть на iPhone:
-1) На Mac перетащите оба файла вместе в «Фото» —
-   они склеятся в Live Photo, дальше iCloud на iPhone.
-2) На iPhone: скопируйте оба в «Файлы» и импортируйте
-   парой через Live Photo Creator / ImgPlay / Lively.
-3) Обои: Фото → Live Photo → Поделиться → Сделать обоями → Live вкл.
+1) На Mac перетащите оба файла вместе в «Фото».
+2) На iPhone: импортируйте парой через Live Photo Creator / ImgPlay / Lively.
+3) Обои: Фото → Live Photo → Сделать обоями → Live вкл.
 
 Эффект: нажали и держите — включается луч фонарика.
 """,
