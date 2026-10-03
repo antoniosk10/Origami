@@ -1,9 +1,9 @@
 Live Photo: IMG_FLASH
-ContentIdentifier: см. метаданные файлов (совпадает в JPG и MOV)
+ContentIdentifier: EED93FA5-0EA0-42D9-AD0F-8C387EE315F9
 
 Файлы (оба нужны, имена должны совпадать):
   IMG_FLASH.JPG  — ключевой кадр (луч включён)
-  IMG_FLASH.MOV  — движение (мягкий свет → луч), ~2.7 с
+  IMG_FLASH.MOV  — движение (мягкий свет → луч), ровно 2.0 с
 
 Как попасть на iPhone:
 1) На Mac перетащите оба файла вместе в «Фото» —

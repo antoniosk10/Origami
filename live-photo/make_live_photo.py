@@ -63,16 +63,17 @@ def run(cmd: list[str]) -> None:
 
 
 def make_video(dark: Path, bright: Path, out_mov: Path, size: tuple[int, int], fps: int = 30) -> None:
-    """~2.7s clip: soft light -> flashlight beam on, hold the bright frame."""
+    """Exactly 2.0s clip: soft light -> flashlight beam on, hold the bright frame."""
     w, h = size
     # Align to even dimensions for H.264
     w -= w % 2
     h -= h % 2
+    # Timeline: dark 0.30s → crossfade 0.60s → bright hold to 2.00s
     vf = (
         f"[0:v]scale={w}:{h}:flags=lanczos,setsar=1,fps={fps},format=yuv420p,setpts=PTS-STARTPTS[v0];"
         f"[1:v]scale={w}:{h}:flags=lanczos,setsar=1,fps={fps},format=yuv420p,setpts=PTS-STARTPTS[v1];"
-        # hold dark 0.45s, crossfade 0.85s, hold bright to ~2.7s
-        f"[v0][v1]xfade=transition=fade:duration=0.85:offset=0.45,format=yuv420p[v]"
+        f"[v0][v1]xfade=transition=fade:duration=0.60:offset=0.30,format=yuv420p,"
+        f"trim=duration=2.0,setpts=PTS-STARTPTS[v]"
     )
     run(
         [
@@ -87,7 +88,7 @@ def make_video(dark: Path, bright: Path, out_mov: Path, size: tuple[int, int], f
             "-loop",
             "1",
             "-t",
-            "2.5",
+            "2.0",
             "-i",
             str(bright),
             "-filter_complex",
@@ -106,14 +107,14 @@ def make_video(dark: Path, bright: Path, out_mov: Path, size: tuple[int, int], f
             "yuv420p",
             "-r",
             str(fps),
+            "-frames:v",
+            str(fps * 2),
             "-movflags",
             "+faststart",
             "-tag:v",
             "avc1",
             "-brand",
             "qt  ",
-            "-t",
-            "2.7",
             str(out_mov),
         ]
     )
@@ -177,7 +178,7 @@ ContentIdentifier: {content_id}
 
 Файлы (оба нужны, имена должны совпадать):
   {jpeg_out.name}  — ключевой кадр (луч включён)
-  {mov_out.name}  — движение (мягкий свет → луч), ~2.7 с
+  {mov_out.name}  — движение (мягкий свет → луч), ровно 2.0 с
 
 Как попасть на iPhone:
 1) На Mac перетащите оба файла вместе в «Фото» —
