@@ -16,11 +16,11 @@ from PIL import Image
 
 EXIFTOOL = Path("/tmp/exiftool-13.25/exiftool")
 
-# Timeline tuned for Live Photo converters that key off the first ~1s / midpoint:
-# dark hold → fade → bright (bright occupies the middle and the end).
+# Timeline: longer first-frame hold, but beam must still appear near ~1s so
+# Live Photo converters that key off the first second / midpoint see it.
 DURATION_S = 2.0
-DARK_HOLD_S = 0.50
-FADE_S = 0.35
+DARK_HOLD_S = 0.85
+FADE_S = 0.25
 FPS = 30
 
 
