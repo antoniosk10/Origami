@@ -17,9 +17,10 @@ from PIL import Image
 EXIFTOOL = Path("/tmp/exiftool-13.25/exiftool")
 
 # Hard cut: first frame, then instantly second frame (no crossfade).
-DURATION_S = 2.0
+# 1.5s + 1.5s so Live Photo converters that key off the midpoint still see both.
+DURATION_S = 3.0
 DARK_HOLD_S = 1.5
-BRIGHT_HOLD_S = DURATION_S - DARK_HOLD_S  # 0.5s
+BRIGHT_HOLD_S = 1.5
 FPS = 30
 
 
